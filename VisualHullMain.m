@@ -3,10 +3,16 @@ clear all
 % data_dir = 'templeSparseRing/'; 
 % data_dir = 'dinoRing/'; 
 data_dir = 'dinoSparseRing/'; 
-% file_base = 'templeR';
-% file_base = 'templeSR';
-file_base = 'dinoSR';
+
 T = 20; %threshold to get object silhouette
+
+params_str = '_par.txt'; 
+files = dir([data_dir '*' params_str]);
+if length(files) ~= 1
+    disp('Cannot find parametrs files')
+    return;
+end
+file_base = files(1).name(1:end-length(params_str));
 
 %% 1 load camera params
 fid = fopen([data_dir file_base '_par.txt'], 'r');
@@ -19,7 +25,8 @@ for i=1:N
     K = reshape(tmp(1:9), 3, 3)';
     R = reshape(tmp(10:18), 3, 3)';
     t = tmp(19:21)';
-    M(:,:,i) = K*[R t];
+    M(:,:,i) = [R t];
+    KM(:,:,i) = K*[R t];
 end
 fclose(fid);
 
@@ -37,7 +44,6 @@ for i=1:size(imgs,4)
 end
 
 %% 4 create voxel grid
-voxel_size = [0.001 0.001 0.001];
 
 switch file_base
     case 'dinoSR'
@@ -53,9 +59,9 @@ switch file_base
 
     case 'templeSR'
         % templeSR bounding box
-        xlim = [-0.08 0.03];
-        ylim = [0.0 0.18];
-        zlim = [-0.02 0.06];
+        xlim = [-0.15 0.05];
+        ylim = [-0.05 0.2];
+        zlim = [-0.1 0.1];
 
     case 'templeR'
         % templeR bounding box
@@ -69,19 +75,21 @@ switch file_base
         zlim = [-0.1 0.06];
 end
 
+voxel_nb = [100, 100, 100];
+voxel_size = [diff(xlim)/voxel_nb(1), diff(ylim)/voxel_nb(2), diff(zlim)/voxel_nb(3)];
 [voxels, voxel3Dx, voxel3Dy, voxel3Dz, voxels_number] = InitializeVoxels(xlim, ylim, zlim, voxel_size);
 
 
 %% 5 project voxel to silhouette
 display_projected_voxels = 0;
-[voxels_voted] = CreateVisualHull(silhouettes, voxels, M, display_projected_voxels);
+camera_depth_range = [-1 1];
+[voxels_voted] = CreateVisualHull(silhouettes, voxels, K, M, camera_depth_range, display_projected_voxels);
 
-
-% % display voxel grid
+% display voxel grid
 % voxels_voted1 = (reshape(voxels_voted(:,4), size(voxel3Dx)));
 % maxv = max(voxels_voted(:));
 % fid = figure;
-% for j=1:size(voxels_voted1,3), 
+% for j=1:size(voxels_voted1,3)
 %     figure(fid), imagesc((squeeze(voxels_voted1(:,:,j))), [0 maxv]), title([num2str(j), ' - press any key to continue']), axis equal, 
 %     pause,
 % end
@@ -93,23 +101,13 @@ iso_value = maxv-round(((maxv)/100)*error_amount)-0.5;
 disp(['max number of votes:' num2str(maxv)])
 disp(['threshold for marching cube:' num2str(iso_value)]);
 
-[voxel3D] = ConvertVoxelList2Voxel3D(voxels_number, voxel_size, voxels_voted);
+[voxel3D] = ConvertVoxelList2Voxel3D(voxels_number, voxels_voted);
 
 [fv]  = isosurface(voxel3Dx, voxel3Dy, voxel3Dz, voxel3D, iso_value, voxel3Dz);
 [faces, verts, colors]  = isosurface(voxel3Dx, voxel3Dy, voxel3Dz, voxel3D, iso_value, voxel3Dz);
 
-verts_min =  min(verts);
-verts_max =  max(verts);
-verts_diff = abs(verts_max-verts_min);
-
-verts(:,1) = verts(:,1) - verts_min(1)-verts_diff(1)/2;
-verts(:,2) = verts(:,2) - verts_min(2)-verts_diff(2)/2;
-
-fv.vertices = verts;
-verts = verts/max(verts_max);
-
-
 fid = figure; 
+
 p=patch('vertices', verts, 'faces', faces, ... 
     'facevertexcdata', colors, ... 
     'facecolor','flat', ... 
@@ -133,9 +131,14 @@ material([ka kd ks])
 
 axis equal;
 axis tight
-axis off
+% axis off
+grid on
+
+cameratoolbar('Show')
+cameratoolbar('SetMode','orbit')
+cameratoolbar('SetCoordSys','y')
 
 %% 7 save VH to stl file
-cdate = datestr(now, 'yyyy.mm.dd');
-filename = [data_dir file_base '_VH_' cdate '.stl'];
-patch2stl(filename, fv);
+% cdate = datestr(now, 'yyyy.mm.dd');
+% filename = [data_dir file_base '_VH_' cdate '.stl'];
+% patch2stl(filename, fv);
