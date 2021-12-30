@@ -1,8 +1,8 @@
 # Visual Hull Matlab
 
-Visual Hull extraction from calibrate images using Matlab.
+Visual Hull (VH) extraction from calibrate images using Matlab.
 ---
-## Example Temple Sparse Rings
+## Example - VH of Temple Sparse Ring
 ![Temple Sparse](./assets/temple_sparse_ring.png)
 
 ---
