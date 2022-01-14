@@ -6,6 +6,11 @@ Visual Hull (VH) extraction from calibrate images using Matlab.
 ### VH after applying Marching Cube Algorithm
 ![Temple Sparse](./assets/temple_sparse_ring.png)
 
+### Camera Field of View(FOV)
+![Plot of 3 FOV](./assets/temple_fov.png)
+### Intersection of all cameras FOV
+![Intersection all cameras FOV](./assets/temple_fov_union.png)
+
 ### Slices of VH at Z=1
 ![Slice of VH at Z=1](./assets/temple_vh_01.png)
 ### Slices of VH at Z=60
@@ -13,10 +18,6 @@ Visual Hull (VH) extraction from calibrate images using Matlab.
 ### Slices of VH at Z=90
 ![Slice of VH at Z=90](./assets/temple_vh_90.png)
 
-### Camera Field of View(FOV)
-![Plot of 3 FOV](./assets/temple_fov.png)
-### Intersection of all cameras FOV
-![Intersection all cameras FOV](./assets/temple_fov_union.png)
 
 ## To run algorithm
 ```Matlab
