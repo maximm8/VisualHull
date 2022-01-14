@@ -1,6 +1,5 @@
 classdef VisualHull
-    %VISUALHULL Summary of this class goes here
-    %   Detailed explanation goes here
+    %VisualHull - allows to construct visual hull from a set of images
     
     properties
         data_dir = '';
@@ -16,64 +15,17 @@ classdef VisualHull
         voxel3Dz = [];
         voxels_number = [];
         voxels_voted = [];
-        
-%         fv = [];
     end
     
     methods
         function obj = VisualHull(data_loader)
-            %VISUALHULL Construct an instance of this class
-            %   Detailed explanation goes here
-%             obj.data_dir = data_dir;
+            %VisualHull - constructs visual hull from a set of images
             obj.DataLoader = data_loader;
-            
-%             params_str = '_par.txt'; 
-%             files = dir([data_dir '*' params_str]);
-%             if length(files) ~= 1
-%                 disp('Cannot find parametrs files')
-%                 return;
-%             end
-%             obj.file_base = files(1).name(1:end-length(params_str));
         end
         
-%         function outputArg = LoadCameraParams(obj, inputArg)
-%             %METHOD1 Summary of this method goes here
-%             %   Detailed explanation goes here
-%             
-%             fid = fopen([obj.data_dir obj.file_base '_par.txt'], 'r');
-%             res = textscan(fid,'%d');
-%             obj.N = res{1,1};
-%             for i=1:obj.N
-%                 textscan(fid,'%s',1);
-%                 res = textscan(fid,'%f', 21);
-%                 tmp =res{1}';
-%                 K = reshape(tmp(1:9), 3, 3)';
-%                 R = reshape(tmp(10:18), 3, 3)';
-%                 t = tmp(19:21)';
-%                 M(:,:,i) = [R t];
-%                 KM(:,:,i) = K*[R t];
-%             end
-%             fclose(fid);
-% 
-%             
-% %             outputArg = obj.Property1 + inputArg;
-%         end
-        
-%         function outputArg = LoadImages(obj, inputArg)
-%             %METHOD1 Summary of this method goes here
-%             %   Detailed explanation goes here
-%             
-%             for i=1:obj.N
-%                 obj.imgs(:,:,:,i) = imread([obj.data_dir obj.file_base num2str(i, '%04i') '.png']);
-%             end
-% 
-%             
-% %             outputArg = obj.Property1 + inputArg;
-%         end
-        
         function [obj] = ExtractSilhoueteFromImages(obj, silhouette_threshold)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            %ExtractSilhoueteFromImages - extract an object silhouette from
+            %images loaded by data loader using image thresholding
 
             for i=1:obj.DataLoader.N
                 img = obj.DataLoader.imgs(:,:,:,i);
@@ -85,38 +37,12 @@ classdef VisualHull
         end
         
         function obj = CreateVoxelGrid(obj, voxel_nb)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            %CreateVoxelGrid crerate a grid of voxels using bounds estimated
+            %from interesction of cameras FOV
 
-            switch obj.DataLoader.file_base
-            case 'dinoSR'
-                % dinoSR bounding box
-                xlim = [-0.07 0.02];
-                ylim = [-0.02 0.07];
-                zlim = [-0.07 0.02];
-            case 'dinoR'
-                % dinoR bounding box
-                xlim = [-0.03 0.06];
-                ylim = [0.022 0.11];
-                zlim = [-0.02 0.06];
-
-            case 'templeSR'
-                % templeSR bounding box
-                xlim = [-0.15 0.05];
-                ylim = [-0.05 0.2];
-                zlim = [-0.1 0.1];
-
-            case 'templeR'
-                % templeR bounding box
-                xlim = [-0.05 0.11];
-                ylim = [-0.04 0.15];
-                zlim = [-0.1 0.06];
-
-            otherwise
-                xlim = [-0.08 0.11];
-                ylim = [-0.03 0.18];
-                zlim = [-0.1 0.06];
-            end
+            xlim = [obj.DataLoader.MinBound(1) obj.DataLoader.MaxBound(1)];
+            ylim = [obj.DataLoader.MinBound(2) obj.DataLoader.MaxBound(2)];
+            zlim = [obj.DataLoader.MinBound(3) obj.DataLoader.MaxBound(3)];
 
             if ~exist('voxel_nb', 'var')
                 voxel_nb = [100, 100, 100];
@@ -124,30 +50,27 @@ classdef VisualHull
             
             voxel_size = [diff(xlim)/voxel_nb(1), diff(ylim)/voxel_nb(2), diff(zlim)/voxel_nb(3)];
             [obj.voxels, obj.voxel3Dx, obj.voxel3Dy, obj.voxel3Dz, obj.voxels_number] = InitializeVoxels(xlim, ylim, zlim, voxel_size);
-
-%             outputArg = obj.Property1 + inputArg;
         end
         
-        function obj = ProjectVoxelsToSilhouette(obj, display_projected_voxels)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-
+        function obj = ProjectVoxelsToSilhouette(obj, disp_proj_voxels)
+            %ProjectVoxelsToSilhouette - project voxels to each object
+            %silhouette and accumlate all the votes
+            
             if ~exist('display_projected_voxels', 'var')
-                display_projected_voxels = 0;
+                disp_proj_voxels = 0;
             end
             
-            display_projected_voxels = 0;
+            disp_proj_voxels = 0;
             camera_depth_range = [-1 1];
             K = obj.DataLoader.K(:,:,1);
             M = obj.DataLoader.M;
             
-            [obj.voxels_voted] = CreateVisualHull(obj.silhouettes, obj.voxels, K, M, camera_depth_range, display_projected_voxels);
+            [obj.voxels_voted] = CreateVisualHull(obj.silhouettes, obj.voxels, K, M, camera_depth_range, disp_proj_voxels);
         end
 
         function [] = ShowVH3D(obj, error_amount)
-            %METHOD1 Summary of this method goes here
-                %   Detailed explanation goes here
-
+            %ShowVH3D show visula hull in 3D
+              
             if ~exist('error_amount', 'var')
                 error_amount = 5;
             end
@@ -155,15 +78,9 @@ classdef VisualHull
             iso_value = maxv - round(((maxv)/100)*error_amount)-0.5;
             disp(['max number of votes:' num2str(maxv)])
             disp(['threshold for marching cube:' num2str(iso_value)]);
-% 
-%             [voxel3D] = ConvertVoxelList2Voxel3D(obj.voxels_number, obj.voxels_voted);
-% 
-%             [obj.fv]  = isosurface(obj.voxel3Dx, obj.voxel3Dy, obj.voxel3Dz, obj.voxel3D, iso_value, obj.voxel3Dz);
-            [voxel3D] = ConvertVoxelList2Voxel3D(obj.voxels_number, obj.voxels_voted);
-%             fv = CalcIsosurface(obj, error_amount);
-            [faces, verts, colors]  = isosurface(obj.voxel3Dx, obj.voxel3Dy, obj.voxel3Dz, voxel3D, iso_value, obj.voxel3Dz);
             
-            %fid = figure; 
+            [voxel3D] = ConvertVoxelList2Voxel3D(obj.voxels_number, obj.voxels_voted);
+            [faces, verts, colors]  = isosurface(obj.voxel3Dx, obj.voxel3Dy, obj.voxel3Dz, voxel3D, iso_value, obj.voxel3Dz);
 
             p=patch('vertices', verts, 'faces', faces, ... 
                 'facevertexcdata', colors, ... 
@@ -198,24 +115,22 @@ classdef VisualHull
         
         
         function [fv] = CalcIsosurface(obj, error_amount)
-            %METHOD1 Summary of this method goes here
-                %   Detailed explanation goes here
+            %CalcIsosurface - extract isosurface data from voxel grid using
+            % maximum nuber of votes - error amount
+                
             maxv = max(obj.voxels_voted(:,4));
             iso_value = maxv - round(((maxv)/100)*error_amount)-0.5;
+            
             disp(['max number of votes:' num2str(maxv)])
             disp(['threshold for marching cube:' num2str(iso_value)]);
 
             [voxel3D] = ConvertVoxelList2Voxel3D(obj.voxels_number, obj.voxels_voted);
-
             fv  = isosurface(obj.voxel3Dx, obj.voxel3Dy, obj.voxel3Dz, voxel3D, iso_value, obj.voxel3Dz);
         end
         
         function [] = ShowVH2DGrid(obj, img_rot_angle)
-        %METHOD1 Summary of this method goes here
-                    %   Detailed explanation goes here
+        %ShowVH2DGrid - show slices of a voxel grid one at a time
                     
-                    
-            
             if ~exist('img_rot_angle', 'var')
                 img_rot_angle = 0;
             end
@@ -235,31 +150,8 @@ classdef VisualHull
             end
         end
         
-% %         function outputArg = ShowVoxelGrid3D(obj, inputArg)
-% %         %METHOD1 Summary of this method goes here
-% %                     %   Detailed explanation goes here
-% % 
-% %         display_projected_voxels = 0;
-% %         camera_depth_range = [-1 1];
-% %         [voxels_voted] = CreateVisualHull(silhouettes, voxels, K, M, camera_depth_range, display_projected_voxels);
-% % 
-% %         %             outputArg = obj.Property1 + inputArg;
-% %         end
-% %         
-%         function outputArg = ShowVoxelsImages(obj, inputArg)
-%         %METHOD1 Summary of this method goes here
-%                     %   Detailed explanation goes here
-% 
-%         display_projected_voxels = 0;
-%         camera_depth_range = [-1 1];
-%         [voxels_voted] = CreateVisualHull(silhouettes, voxels, K, M, camera_depth_range, display_projected_voxels);
-% 
-%         %             outputArg = obj.Property1 + inputArg;
-%         end
-        
         function [] = SaveGeoemtry2STL(obj, filename, error_amount)
-        %METHOD1 Summary of this method goes here
-        %   Detailed explanation goes here
+        %SaveGeoemtry2STL  - save geometry to stl file
         
             if ~exist('display_projected_voxels', 'var')
                 cdate = datestr(now, 'yyyy.mm.dd');

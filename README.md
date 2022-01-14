@@ -13,9 +13,14 @@ Visual Hull (VH) extraction from calibrate images using Matlab.
 ### Slices of VH at Z=90
 ![Slice of VH at Z=90](./assets/temple_vh_90.png)
 
+### Camera Field of View(FOV)
+![Plot of 3 FOV](./assets/temple_fov.png)
+### Intersection of all cameras FOV
+![Intersection all cameras FOV](./assets/temple_fov_union.png)
+
 ## To run algorithm
 ```Matlab
-main02.m
+main_visual_hull.m
 ```
 
 ---
