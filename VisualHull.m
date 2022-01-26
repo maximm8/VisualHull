@@ -150,6 +150,42 @@ classdef VisualHull
             end
         end
         
+        function [] = SaveVH2DGrid(obj, path, img_rot_angle, resolution_dpi)
+        %ShowVH2DGrid - show slices of a voxel grid one at a time
+                    
+            if ~exist('img_rot_angle', 'var')
+                img_rot_angle = 0;
+            end
+            
+            if ~exist('resolution_dpi', 'var')
+                resolution_dpi = 150;
+            end
+            
+            fid = figure;
+
+            %display voxel grid
+            voxels_voted1 = (reshape(obj.voxels_voted(:,4), size(obj.voxel3Dx)));
+            maxv = max(obj.voxels_voted(:));
+%             fid = figure;
+            for j=1:size(voxels_voted1,3)
+%                 figure(fid), 
+                img = (squeeze(voxels_voted1(:,:,j)));
+                if img_rot_angle >0
+                    img  = imrotate(img, img_rot_angle);
+                end
+                img_filename = [path, num2str(j, '%03d'), '.png' ];
+                imagesc(img, [0 maxv]);
+%                 title([num2str(j, '%03d')]), axis equal;
+%                 saveas(fid, img_filename)
+%                 ax = gca;
+                exportgraphics(fid,img_filename, 'Resolution', resolution_dpi);
+               
+                
+            end
+            
+            close(fid);
+        end
+        
         function [] = SaveGeoemtry2STL(obj, filename, error_amount)
         %SaveGeoemtry2STL  - save geometry to stl file
         
